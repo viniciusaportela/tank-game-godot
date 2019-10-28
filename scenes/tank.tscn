@@ -1,11 +1,13 @@
-[gd_scene load_steps=9 format=2]
+[gd_scene load_steps=11 format=2]
 
 [ext_resource path="res://scripts/tank.gd" type="Script" id=1]
 [ext_resource path="res://sprites/tankBody_blue.png" type="Texture" id=2]
-[ext_resource path="res://sprites/tankBlue_barrel2_outline.png" type="Texture" id=3]
-[ext_resource path="res://sprites/shotRed.png" type="Texture" id=4]
-[ext_resource path="res://sprites/shotLarge.png" type="Texture" id=5]
-[ext_resource path="res://sprites/shotOrange.png" type="Texture" id=6]
+[ext_resource path="res://sprites/specialBarrel4_outline.png" type="Texture" id=3]
+[ext_resource path="res://sprites/tankBlue_barrel2_outline.png" type="Texture" id=4]
+[ext_resource path="res://sprites/shotRed.png" type="Texture" id=5]
+[ext_resource path="res://sprites/shotLarge.png" type="Texture" id=6]
+[ext_resource path="res://sprites/shotOrange.png" type="Texture" id=7]
+[ext_resource path="res://scripts/sight.tres.gd" type="Script" id=8]
 
 [sub_resource type="Animation" id=1]
 resource_name = "fire"
@@ -20,7 +22,7 @@ tracks/0/keys = {
 "times": PoolRealArray( 0, 0.1, 0.2 ),
 "transitions": PoolRealArray( 1, 1.10957, 1 ),
 "update": 1,
-"values": [ ExtResource( 5 ), ExtResource( 6 ), ExtResource( 4 ) ]
+"values": [ ExtResource( 6 ), ExtResource( 7 ), ExtResource( 5 ) ]
 }
 tracks/1/type = "value"
 tracks/1/path = NodePath("fire:position")
@@ -47,12 +49,21 @@ tracks/2/keys = {
 "values": [ true, false ]
 }
 
-[sub_resource type="GDScript" id=2]
-script/source = "extends Node2D
-
-func _draw():
-	# Vector2 -> 
-	draw_circle(Vector2(), 4, Color(1,0,0))"
+[sub_resource type="Animation" id=2]
+resource_name = "shoot"
+length = 0.4
+tracks/0/type = "value"
+tracks/0/path = NodePath("sprite:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/keys = {
+"times": PoolRealArray( 0, 0.4 ),
+"transitions": PoolRealArray( 0.307786, 0.554785 ),
+"update": 0,
+"values": [ Vector2( -8.26152, -0.351406 ), Vector2( -0.0969391, -0.351406 ) ]
+}
 
 [node name="Tank" type="KinematicBody2D"]
 collision_mask = 6
@@ -66,6 +77,19 @@ texture = ExtResource( 2 )
 position = Vector2( -0.299782, -0.749451 )
 polygon = PoolVector2Array( -13.8721, -18.1521, 15.0567, -18.0022, 18.5042, -11.5569, 18.804, 12.8752, 14.0075, 19.3205, -13.1226, 19.3205, -18.3688, 11.3763, -18.2189, -11.2571 )
 
+[node name="mg" type="Node2D" parent="."]
+editor/display_folded = true
+position = Vector2( 10.9574, 9.73989 )
+
+[node name="sprite" type="Sprite" parent="mg"]
+position = Vector2( 5.85325, -0.185318 )
+rotation = -1.5708
+scale = Vector2( 0.541333, 0.541333 )
+texture = ExtResource( 3 )
+
+[node name="position" type="Position2D" parent="mg"]
+position = Vector2( 20.5066, 0.850336 )
+
 [node name="area" type="Area2D" parent="."]
 editor/display_folded = true
 
@@ -74,27 +98,39 @@ position = Vector2( -0.299782, -0.749451 )
 polygon = PoolVector2Array( -13.8721, -18.1521, 15.0567, -18.0022, 18.5042, -11.5569, 18.804, 12.8752, 14.0075, 19.3205, -13.1226, 19.3205, -18.3688, 11.3763, -18.2189, -11.2571 )
 
 [node name="barrel" type="Node2D" parent="."]
+editor/display_folded = true
 
 [node name="sprite" type="Sprite" parent="barrel"]
 position = Vector2( -0.0969391, -0.351406 )
 rotation = 1.5708
-texture = ExtResource( 3 )
+texture = ExtResource( 4 )
 offset = Vector2( 0.195154, -8.1068 )
 
 [node name="muzzle" type="Position2D" parent="barrel"]
-position = Vector2( 43.4424, 0.151535 )
+position = Vector2( 36.2751, -0.0421772 )
 
 [node name="fire" type="Sprite" parent="barrel"]
 visible = false
 position = Vector2( 41.7903, 0.133345 )
 rotation = -1.5708
 z_index = 10
-texture = ExtResource( 4 )
+texture = ExtResource( 5 )
 
 [node name="anim" type="AnimationPlayer" parent="barrel"]
 playback_speed = 2.0
 anims/fire = SubResource( 1 )
 
 [node name="sight" type="Node2D" parent="barrel"]
-position = Vector2( 300, 0.152 )
-script = SubResource( 2 )
+position = Vector2( 343.995, 0.152 )
+script = ExtResource( 8 )
+
+[node name="barrel_anim" type="AnimationPlayer" parent="barrel"]
+anims/shoot = SubResource( 2 )
+
+[node name="timer_reload" type="Timer" parent="."]
+one_shot = true
+
+[node name="timer_mg" type="Timer" parent="."]
+wait_time = 0.1
+[connection signal="timeout" from="timer_reload" to="." method="_on_timer_reload_timeout"]
+[connection signal="timeout" from="timer_mg" to="." method="_on_timer_mg_timeout"]

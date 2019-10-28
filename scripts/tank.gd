@@ -11,12 +11,14 @@ extends KinematicBody2D
 const ROT_VEL = PI
 
 # Velocidade do Tanque em todas as direções
-const MAX_SPEED = 100
+#const MAX_SPEED = 100
+var MAX_SPEED = 100
 
 ## -=VARIÁVEIS GLOBAIS=-
 var vel_mod = 1
 var travel = 0
 var ace = 0
+var loaded = true
 onready var BULLET_TANK_GROUP = 'bullet-' + str(self)
 # onready -> Variável que Executa Antes do _ready()
 
@@ -24,6 +26,7 @@ onready var BULLET_TANK_GROUP = 'bullet-' + str(self)
 # Pre carregar um objeto/cena para poder usá-lo
 var pre_bullet = preload('res://scenes/bullet.tscn')
 var pre_track = preload('res://scenes/track.tscn')
+var pre_mg_bullet = preload('res://scenes/mg_bullet.tscn')
 
 ## -= EXPORTS =-
 # Export = Variável que Pode Editar no Inspetor
@@ -67,7 +70,6 @@ func _draw():
 # _physics_process -> Próprio Tempo Baseado na Física do Jogo
 
 func _physics_process(delta):
-	
 	# Pra não executar movimento e tiro dentro do Editor
 	if Engine.editor_hint:
 		return
@@ -77,25 +79,39 @@ func _physics_process(delta):
 	var dir = 0
 #
 	# Atirar
-	if Input.is_action_just_pressed("ui_shoot"):
-		# Pegar Grupo, Verificar se tem menos de 6 tiros na tela
-		if get_tree().get_nodes_in_group(BULLET_TANK_GROUP).size() < 6:
-			var bullet = pre_bullet.instance()
+	if Input.is_action_just_pressed("ui_shoot") and loaded:
+		var bullet = pre_bullet.instance()
+		loaded = false
+		
+		# Mira do Tanque
+		$barrel/sight.update()
+		$timer_reload.start()
+		
+		# Animação de Tiro
+		$barrel/barrel_anim.play("shoot")
+		
+		# Posição dentro do jogo
+		bullet.global_position = $barrel/muzzle.global_position
 
-			# Posição dentro do jogo
-			bullet.global_position = $barrel/muzzle.global_position
-
-			# Mudar Variáveis de um Objeto
-			# normalized() -> Ignorar Velocidade, só 1-0, só Direção
-			bullet.dir = Vector2(cos($barrel.global_rotation), sin($barrel.global_rotation)).normalized()
-			
-			# Adiciona para o grupo do tanque
-			bullet.add_to_group(BULLET_TANK_GROUP)
-
-			# Pegar 'parent' - Pai
-			# $"../" ou get_parent()
-			get_parent().add_child(bullet)
-			$barrel/anim.play("fire")
+		# Mudar Variáveis de um Objeto
+		# normalized() -> Ignorar Velocidade, só 1-0, só Direção
+		bullet.dir = Vector2(cos($barrel.global_rotation), sin($barrel.global_rotation)).normalized()
+		
+		# Adiciona para o grupo do tanque
+		bullet.add_to_group(BULLET_TANK_GROUP)
+		bullet.max_dist = $barrel/sight.position.x - $barrel/muzzle.position.x
+		
+		# Pegar 'parent' - Pai
+		# $"../" ou get_parent()
+		get_parent().add_child(bullet)
+		$barrel/anim.play("fire")
+	
+	# Tiro da Metralhadora
+	if Input.is_action_just_pressed("machine_gun"):
+		$timer_mg.start()
+	
+	if Input.is_action_just_released("machine_gun"):
+		$timer_mg.stop()
 	
 	# Rotacionar o Tanque
 	if(Input.is_action_pressed("ui_right")):
@@ -127,6 +143,7 @@ func _physics_process(delta):
 	
 	# Fazer Mira Olhar para Posição do Mouse
 	$barrel.look_at(get_global_mouse_position())
+	MAX_SPEED = 100
 	pass
 
 # Função executada toda vez que a skin atual for atualizada
@@ -137,5 +154,23 @@ func set_body(val):
 	if Engine.editor_hint:
 		# Executa _draw()
 		update()
-	
+		
 	pass
+
+func _on_timer_reload_timeout():
+	loaded = true
+	$barrel/sight.update()
+
+func shoot_mg():
+	var mg = pre_mg_bullet.instance()
+	mg.global_position = $mg/position.global_position
+	mg.global_rotation = global_rotation
+	mg.dir = Vector2(cos(global_rotation), sin(global_rotation)).normalized()
+	get_parent().get_parent().add_child(mg)
+
+func _on_timer_mg_timeout():
+	shoot_mg()
+	pass # Replace with function body.
+
+func slow_down():
+	MAX_SPEED = 20
