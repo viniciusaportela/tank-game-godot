@@ -1,3 +1,3 @@
 # tank-game-godot
 
-Um simples jogo de tanque no Godot Engine
+a simple tank game made in Godot Engine
